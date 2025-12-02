@@ -41,14 +41,31 @@ export const generateCookingAssistance = async (
   `;
 
   try {
-    const response = await ai.models.generateContent({
+    // Timeout de 8 segundos para evitar bloqueos si la red falla
+    const timeoutPromise = new Promise<never>((_, reject) => 
+      setTimeout(() => reject(new Error("Timeout")), 8000)
+    );
+
+    const apiCall = ai.models.generateContent({
       model: 'gemini-2.5-flash',
       contents: prompt,
     });
+
+    // Carrera entre la API y el reloj
+    const response = await Promise.race([apiCall, timeoutPromise]);
+
     // Limpiamos cualquier rastro de markdown que pueda quedar
     return response.text?.replace(/[*#_`]/g, '').trim() || "No te he entendido bien.";
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error calling Gemini:", error);
-    return "Tengo problemas de conexión.";
+    
+    if (error.message === "Timeout") {
+        return "La conexión va lenta. Intenta preguntar de nuevo.";
+    }
+    if (error.message?.includes("Model isn't available") || error.message?.includes("503")) {
+        return "El cerebro de la cocina está saturado. Prueba en un momento.";
+    }
+    
+    return "Tengo problemas de conexión. Revisa tu internet.";
   }
 };

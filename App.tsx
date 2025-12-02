@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { SAMPLE_RECIPES } from './data';
 import { Recipe, Category, ViewState, AppSettings, Ingredient } from './types';
@@ -237,6 +238,7 @@ const CookingMode = ({
   
   const statusRef = useRef<'idle' | 'listening' | 'speaking'>('idle');
   const hasSpokenInit = useRef(false);
+  const previousStepRef = useRef(0);
 
   // WAKE LOCK: Mantiene la pantalla encendida
   useEffect(() => {
@@ -258,25 +260,38 @@ const CookingMode = ({
     setDisplayStatus(newStatus);
   };
 
-  // INICIO: Lee el primer paso al entrar
+  // INICIO: Mensaje de Bienvenida y Primer Paso
   useEffect(() => {
     if (!hasSpokenInit.current) {
       setTimeout(() => {
         speakRobust(
-          `Cocinando ${recipe.title}. Paso 1: ${recipe.steps[0].description}. Toca la pantalla y di "Siguiente" para avanzar.`,
+          `Bienvenido a la cocina. Vamos a preparar ${recipe.title}. Paso 1: ${recipe.steps[0].description}. Toca la pantalla y di Siguiente para continuar.`,
           () => updateStatus('idle')
         );
       }, 600);
       hasSpokenInit.current = true;
+      previousStepRef.current = 0;
     }
     return () => { window.speechSynthesis.cancel(); };
   }, []);
 
-  // LECTURA AUTOMÁTICA AL CAMBIAR DE PASO
+  // LECTURA AUTOMÁTICA AL CAMBIAR DE PASO CON FEEDBACK DE NAVEGACIÓN
   useEffect(() => {
     if (hasSpokenInit.current) {
+      // Determinamos si vamos adelante o atrás para dar feedback
+      const direction = currentStep > previousStepRef.current ? 'next' : currentStep < previousStepRef.current ? 'prev' : 'same';
+      let introPhrase = `Paso ${currentStep + 1}.`;
+
+      if (direction === 'next') {
+        introPhrase = `Muy bien. Avanzando al paso ${currentStep + 1}.`;
+      } else if (direction === 'prev') {
+        introPhrase = `Entendido. Volviendo al paso ${currentStep + 1}.`;
+      }
+
+      previousStepRef.current = currentStep; // Actualizamos referencia
+
       setTimeout(() => {
-        speakRobust(`Paso ${currentStep + 1}. ${recipe.steps[currentStep].description}`, () => updateStatus('idle'));
+        speakRobust(`${introPhrase} ${recipe.steps[currentStep].description}`, () => updateStatus('idle'));
       }, 200);
     }
   }, [currentStep]);
@@ -337,7 +352,7 @@ const CookingMode = ({
         }
       } else if (isRepeat) {
         setAiMessage("Repitiendo...");
-        speakRobust(recipe.steps[currentStep].description, () => updateStatus('idle'));
+        speakRobust(`Repito. ${recipe.steps[currentStep].description}`, () => updateStatus('idle'));
 
       } else if (isExit) {
         speakRobust("Saliendo de la cocina.");
@@ -351,7 +366,7 @@ const CookingMode = ({
           setAiMessage(reply);
           speakRobust(reply, () => updateStatus('idle'));
         } catch (error) {
-          speakRobust("Error de conexión.", () => updateStatus('idle'));
+          speakRobust("No puedo conectar ahora.", () => updateStatus('idle'));
         }
       }
     };
@@ -371,8 +386,9 @@ const CookingMode = ({
     try {
       recognition.start();
     } catch (e) {
-      console.error("Recognition start error", e);
-      updateStatus('idle');
+      console.warn("Recognition already started or error", e);
+      // Si ya estaba activo, no pasa nada grave, reseteamos a idle si es necesario
+      if (statusRef.current === 'listening') updateStatus('idle');
     }
   };
 
@@ -484,7 +500,7 @@ export default function App() {
   const handleEnterApp = () => {
     setShowIntro(false);
     if (settings.voiceEnabled) {
-      setTimeout(() => speakRobust("Bienvenido a Navidad en la Mesa. ¿Qué te apetece cocinar?"), 500);
+      setTimeout(() => speakRobust("Bienvenido a Navidad en la Mesa. ¿Qué te apetece cocinar hoy?"), 500);
     }
   };
 
@@ -516,7 +532,7 @@ export default function App() {
     recognition.continuous = false;
     
     // PROMPT CONTEXTUAL
-    let promptText = "¿Qué te apetece cocinar?";
+    let promptText = "¿Qué te apetece cocinar hoy?";
     if (viewState.type === 'CATEGORY') {
         promptText = "¿Qué número abro? O di 'Siguiente página'.";
     }
@@ -527,7 +543,7 @@ export default function App() {
             try {
                 recognition.start();
             } catch(e) {
-                console.error(e);
+                console.warn("Global recognition start failed", e);
                 setIsGlobalListening(false);
             }
         }, 100);
