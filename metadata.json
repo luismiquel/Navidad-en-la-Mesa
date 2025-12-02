@@ -1,0 +1,7 @@
+{
+  "name": "Navidad en la Mesa",
+  "description": "Tu asistente culinario definitivo para estas fiestas. Recetas navideñas, listas de compra inteligentes, modo cocina accesible y asistente de voz con IA.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Navidad en la Mesa</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+              serif: ['Lora', 'serif'],
+            },
+            colors: {
+              christmas: {
+                red: '#B91C1C',    /* Rojo rubí profundo (Tailwind Red 700) - Alta legibilidad */
+                green: '#15803D',  /* Verde pino natural (Tailwind Green 700) - Buen contraste */
+                gold: '#A16207',   /* Oro antiguo (Tailwind Yellow 700) - Legible sobre blanco */
+                accent: '#FCD34D', /* Amarillo luz (Tailwind Amber 300) - Para destacar sobre oscuro */
+                cream: '#FFFCF5',  /* Blanco roto muy cálido - Menos fatiga visual */
+                dark: '#1F2937'    /* Gris casi negro (Tailwind Gray 800) - Texto principal */
+              }
+            }
+          }
+        },
+        darkMode: 'class'
+      }
+    </script>
+    <style>
+      /* Accessibility Focus Styles */
+      *:focus-visible {
+        outline: 4px solid #FCD34D;
+        outline-offset: 2px;
+      }
+      
+      /* Smooth scrolling */
+      html {
+        scroll-behavior: smooth;
+      }
+    </style>
+  <script type="importmap">
+{
+  "imports": {
+    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
+    "lucide-react": "https://aistudiocdn.com/lucide-react@^0.555.0",
+    "react/": "https://aistudiocdn.com/react@^19.2.0/",
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@google/genai": "https://aistudiocdn.com/@google/genai@^1.30.0"
+  }
+}
+</script>
+</head>
+  <body class="bg-christmas-cream text-christmas-dark transition-colors duration-300">
+    <div id="root"></div>
+  </body>
+</html>
