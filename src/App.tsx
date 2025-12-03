@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Category, Recipe, ViewState, AppSettings } from './types';
+import { Category, Recipe, ViewState, AppSettings, Ingredient } from './types';
 import { SAMPLE_RECIPES } from './data';
 import { generateCookingAssistance } from './services/geminiService';
-import { Mic, ChevronLeft, ChevronRight, Clock, Play, Pause, RotateCcw, Home, ShoppingCart, Heart, Settings as SettingsIcon, ChefHat, Volume2, VolumeX } from 'lucide-react';
+import { Mic, ChevronLeft, ChevronRight, Clock, Play, Pause, RotateCcw, Home, ShoppingCart, Heart, Settings as SettingsIcon, ChefHat, Volume2, VolumeX, Trash2, Plus } from 'lucide-react';
 
 // Polyfill for SpeechRecognition
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -16,6 +16,14 @@ export default function App() {
     highContrast: false,
     fontSizeMultiplier: 1,
     voiceEnabled: true,
+  });
+
+  // Cart State
+  const [cart, setCart] = useState<Ingredient[]>(() => {
+      try {
+          const saved = localStorage.getItem('navidad_cart');
+          return saved ? JSON.parse(saved) : [];
+      } catch (e) { return []; }
   });
 
   // Cooking Mode
@@ -43,6 +51,34 @@ export default function App() {
   useEffect(() => { viewRef.current = view; }, [view]);
   useEffect(() => { isTimerRunningRef.current = isTimerRunning; }, [isTimerRunning]);
 
+  // Persist Cart
+  useEffect(() => {
+      localStorage.setItem('navidad_cart', JSON.stringify(cart));
+  }, [cart]);
+
+  // Wake Lock for Cooking Mode (Prevent screen sleep)
+  useEffect(() => {
+    let wakeLock: any = null;
+    const requestWakeLock = async () => {
+      if (view.type === 'COOKING' && 'wakeLock' in navigator) {
+        try {
+          wakeLock = await (navigator as any).wakeLock.request('screen');
+          console.log('Pantalla mantenida activa.');
+        } catch (err) {
+          console.log('Error wake lock:', err);
+        }
+      }
+    };
+    
+    if (view.type === 'COOKING') {
+        requestWakeLock();
+    }
+    
+    return () => {
+      if (wakeLock) wakeLock.release();
+    };
+  }, [view.type]);
+
   // --- AUDIO HELPERS ---
 
   const speakRobust = useCallback((text: string, onEnd?: () => void) => {
@@ -56,7 +92,7 @@ export default function App() {
     setTimeout(() => {
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
-        utterance.rate = 0.95; 
+        utterance.rate = 0.9; // Slightly slower for better accessibility clarity
         
         utterance.onend = () => {
           setStatus('idle');
@@ -80,7 +116,6 @@ export default function App() {
         alert("Tu navegador no soporta control por voz.");
         return;
     }
-    // Stop speaking if listening starts
     if (status === 'speaking') {
         window.speechSynthesis.cancel();
     }
@@ -98,13 +133,22 @@ export default function App() {
 
         recognition.onend = () => {
             isListeningRef.current = false;
-            // Only set to idle if we aren't transitioning to speaking/processing
-            if (status === 'listening') setStatus('idle');
+            // Auditory feedback if it closes without action (crucial for blind users)
+            if (status === 'listening') {
+                 setStatus('idle');
+            }
         };
 
         recognition.onresult = (event: any) => {
             const transcript = event.results[0][0].transcript.toLowerCase();
             handleVoiceCommand(transcript);
+        };
+
+        recognition.onerror = (event: any) => {
+            if (event.error === 'no-speech') {
+                speakRobust("No te he oído. Toca para intentar de nuevo.");
+            }
+            setStatus('idle');
         };
 
         recognitionRef.current = recognition;
@@ -121,7 +165,7 @@ export default function App() {
       const recipe = activeRecipeRef.current;
       const currentView = viewRef.current;
 
-      // 1. GLOBAL COMMANDS (Exit)
+      // 1. GLOBAL COMMANDS
       if (command.includes('salir') || command.includes('terminar')) {
           if (currentView.type === 'COOKING') {
               speakRobust("Saliendo de la cocina.", () => goHome());
@@ -136,7 +180,6 @@ export default function App() {
           if (command.includes('siguiente') || command.includes('avanza') || command.includes('próximo') || command.includes('sigue')) {
               if (step < recipe.steps.length - 1) {
                   setCurrentStep(prev => prev + 1);
-                  // The useEffect will handle the reading
               } else {
                   speakRobust("Ya estás en el último paso. ¡Buen provecho!");
               }
@@ -153,9 +196,9 @@ export default function App() {
           }
 
           // Repetition
-          if (command.includes('repetir') || command.includes('repite') || command.includes('qué') || command.includes('lee')) {
+          if (command.includes('repetir') || command.includes('repite') || command.includes('qué') || command.includes('lee') || command.includes('otra vez')) {
               const textToRead = recipe.steps[step].description;
-              speakRobust(`Repito: ${textToRead}`);
+              speakRobust(`Paso ${step + 1} de ${recipe.steps.length}. ${textToRead}`);
               return;
           }
 
@@ -167,7 +210,6 @@ export default function App() {
                       setIsTimerRunning(false);
                       speakRobust("Temporizador pausado.");
                   } else {
-                      // If timer was at 0 (or finished), reset it to full time
                       if (timerSeconds === 0) {
                           setTimerSeconds(stepData.timerMinutes * 60);
                       }
@@ -184,7 +226,6 @@ export default function App() {
           askGemini(command);
 
       } else {
-          // 3. HOME/MENU COMMANDS
           speakRobust("No te he entendido. Toca una receta para empezar.");
       }
   };
@@ -202,7 +243,6 @@ export default function App() {
 
   const handleEnterApp = () => {
     setShowIntro(false);
-    // Explicitly ask what to cook upon entry
     speakRobust("Bienvenido a Navidad en la Mesa. ¿Qué te apetece cocinar hoy?", () => setStatus('idle'));
   };
 
@@ -231,36 +271,35 @@ export default function App() {
     if (view.type === 'COOKING' && activeRecipe) {
         const recipe = activeRecipe;
         const stepData = recipe.steps[currentStep];
+        const totalSteps = recipe.steps.length;
 
         // Prepare timer if exists
         if (stepData.timerMinutes && timerSeconds === 0 && !isTimerRunning) {
              setTimerSeconds(stepData.timerMinutes * 60);
         }
 
-        // Determine navigation direction for natural phrasing
         const direction = currentStep > previousStepRef.current ? 'next' : currentStep < previousStepRef.current ? 'prev' : 'init';
         
-        // Skip if it's just a re-render of the same step without nav
         if (hasSpokenInit.current && direction === 'init' && currentStep === previousStepRef.current) return;
 
         hasSpokenInit.current = true;
         previousStepRef.current = currentStep;
 
+        // Construcción de frase muy clara y posicional para invidentes
         let phrase = "";
         if (direction === 'init') {
-            phrase = `Empezamos con ${recipe.title}. Paso 1.`;
+            phrase = `Empezamos con ${recipe.title}. Paso 1 de ${totalSteps}.`;
         } else if (direction === 'next') {
-            phrase = `Avanzando al paso ${currentStep + 1}.`;
+            phrase = `Paso ${currentStep + 1} de ${totalSteps}.`;
         } else if (direction === 'prev') {
-            phrase = `Volviendo al paso ${currentStep + 1}.`;
+            phrase = `Volviendo al paso ${currentStep + 1} de ${totalSteps}.`;
         }
 
         let fullText = `${phrase} ${stepData.description}`;
         if (stepData.timerMinutes) {
-            fullText += ` Tiempo sugerido: ${stepData.timerMinutes} minutos. Di "temporizador" para iniciar.`;
+            fullText += ` Tiempo sugerido: ${stepData.timerMinutes} minutos.`;
         }
 
-        // Small delay to allow UI update before speaking
         setTimeout(() => {
             speakRobust(fullText, () => setStatus('idle'));
         }, 300);
@@ -283,8 +322,33 @@ export default function App() {
         setActiveRecipe(r);
         setCurrentStep(0);
         previousStepRef.current = 0;
-        hasSpokenInit.current = false; // Reset for auto-read
+        hasSpokenInit.current = false;
         setView({ type: 'COOKING', recipeId });
+    }
+  };
+
+  const addToCart = () => {
+    if (!activeRecipe) return;
+    const newCart = [...cart];
+    activeRecipe.ingredients.forEach(ing => {
+        const existingIndex = newCart.findIndex(i => i.name.toLowerCase() === ing.name.toLowerCase() && i.unit === ing.unit);
+        if (existingIndex >= 0) {
+            newCart[existingIndex] = {
+                ...newCart[existingIndex],
+                amount: newCart[existingIndex].amount + ing.amount
+            };
+        } else {
+            newCart.push({...ing});
+        }
+    });
+    setCart(newCart);
+    speakRobust("Ingredientes añadidos a la lista de compra.");
+  };
+
+  const clearCart = () => {
+    if (window.confirm('¿Estás seguro de que quieres vaciar la lista de la compra?')) {
+        setCart([]);
+        speakRobust("Lista de compra vaciada.");
     }
   };
 
@@ -306,13 +370,12 @@ export default function App() {
     return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
-  // --- STYLES & CLASSES (Restored Tailwind) ---
+  // --- STYLES ---
   const bgColor = settings.highContrast ? 'bg-gray-900' : 'bg-christmas-cream';
   const textColor = settings.highContrast ? 'text-white' : 'text-gray-800';
   const cardBg = settings.highContrast ? 'bg-gray-800 border-yellow-400' : 'bg-white border-christmas-gold';
   const accentText = settings.highContrast ? 'text-yellow-400' : 'text-christmas-red';
   const btnPrimary = settings.highContrast ? 'bg-yellow-400 text-black' : 'bg-christmas-green text-white hover:bg-green-800';
-
   const baseTextSize = settings.fontSizeMultiplier === 1.5 ? 'text-xl' : settings.fontSizeMultiplier === 1.25 ? 'text-lg' : 'text-base';
   const headingSize = settings.fontSizeMultiplier === 1.5 ? 'text-4xl' : settings.fontSizeMultiplier === 1.25 ? 'text-3xl' : 'text-2xl';
 
@@ -340,9 +403,17 @@ export default function App() {
             <button onClick={goHome} className="flex items-center gap-2 font-serif font-bold text-xl">
                 <ChefHat /> Navidad en la Mesa
             </button>
-            <button onClick={() => setView({ type: 'SETTINGS' })} className="p-2 rounded hover:bg-white/10">
-                <SettingsIcon />
-            </button>
+            <div className="flex gap-2">
+                <button onClick={() => setView({ type: 'CART' })} className="p-2 rounded hover:bg-white/10 relative">
+                    <ShoppingCart />
+                    {cart.length > 0 && (
+                        <span className="absolute top-1 right-1 w-3 h-3 bg-yellow-400 rounded-full border border-white"></span>
+                    )}
+                </button>
+                <button onClick={() => setView({ type: 'SETTINGS' })} className="p-2 rounded hover:bg-white/10">
+                    <SettingsIcon />
+                </button>
+            </div>
         </header>
 
         <main className={`flex-1 w-full max-w-3xl mx-auto p-4 ${baseTextSize}`}>
@@ -408,7 +479,15 @@ export default function App() {
                             </div>
 
                             <div>
-                                <h3 className={`text-xl font-bold font-serif mb-2 ${accentText}`}>Ingredientes</h3>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className={`text-xl font-bold font-serif ${accentText}`}>Ingredientes</h3>
+                                    <button 
+                                        onClick={addToCart}
+                                        className={`text-sm flex items-center gap-1 font-bold px-3 py-1 rounded transition-colors ${settings.highContrast ? 'bg-gray-700 text-yellow-400' : 'bg-christmas-red/10 text-christmas-red hover:bg-christmas-red/20'}`}
+                                    >
+                                        <Plus size={16}/> Añadir al carro
+                                    </button>
+                                </div>
                                 <ul className="space-y-2">
                                     {activeRecipe.ingredients.map((ing, i) => (
                                         <li key={i} className="flex justify-between p-2 rounded hover:bg-black/5">
@@ -427,13 +506,46 @@ export default function App() {
                 </div>
             )}
 
+            {/* CART VIEW */}
+            {view.type === 'CART' && (
+                <div className="space-y-6">
+                    <button onClick={goHome} className="flex items-center gap-2 opacity-70 hover:opacity-100"><ChevronLeft /> Volver</button>
+                    <div className="flex justify-between items-center">
+                        <h2 className={`${headingSize} font-serif font-bold ${accentText}`}>Lista de Compra</h2>
+                        {cart.length > 0 && (
+                            <button 
+                                onClick={clearCart}
+                                className={`p-2 rounded-lg flex items-center gap-2 font-bold transition-colors ${settings.highContrast ? 'bg-red-500 text-white' : 'bg-red-100 text-red-700 hover:bg-red-200'}`}
+                            >
+                                <Trash2 size={20} /> Vaciar
+                            </button>
+                        )}
+                    </div>
+
+                    <div className={`p-6 rounded-xl shadow-lg ${cardBg}`}>
+                        {cart.length === 0 ? (
+                            <p className="text-center opacity-60 py-8">Tu carro está vacío. Añade ingredientes desde las recetas.</p>
+                        ) : (
+                            <ul className="space-y-4">
+                                {cart.map((ing, i) => (
+                                    <li key={i} className="flex justify-between items-center border-b border-gray-200 dark:border-gray-700 pb-2 last:border-0">
+                                        <span className="font-medium text-lg">{ing.name}</span>
+                                        <span className="font-bold whitespace-nowrap bg-black/5 px-2 py-1 rounded">{ing.amount.toFixed(1).replace(/[.,]0$/, '')} {ing.unit}</span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            )}
+
             {/* COOKING MODE */}
             {view.type === 'COOKING' && activeRecipe && (
                 <div className="flex flex-col h-[calc(100vh-80px)]">
                     <div className="flex justify-between items-center mb-4">
                         <button onClick={() => selectRecipe(activeRecipe.id)} className="text-sm opacity-70 flex items-center gap-1"><VolumeX size={16} /> Salir</button>
                         <span className="font-bold truncate px-2">{activeRecipe.title}</span>
-                        <span className="text-sm bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded">{currentStep + 1}/{activeRecipe.steps.length}</span>
+                        <span className="text-sm bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded" aria-live="polite">Paso {currentStep + 1} de {activeRecipe.steps.length}</span>
                     </div>
 
                     <div className={`flex-1 flex flex-col justify-center items-center p-6 text-center rounded-2xl shadow-inner border-4 mb-4 relative overflow-hidden ${cardBg}`}>
@@ -457,18 +569,20 @@ export default function App() {
                     </div>
 
                     {/* MANUAL CONTROLS */}
-                    <div className="grid grid-cols-2 gap-4 mb-24">
+                    <div className="grid grid-cols-2 gap-4 mb-40">
                         <button 
                             disabled={currentStep === 0}
                             onClick={() => setCurrentStep(c => c - 1)}
-                            className={`p-4 rounded-xl font-bold flex justify-center gap-2 ${currentStep === 0 ? 'opacity-30' : 'bg-gray-200 text-gray-800'}`}
+                            className={`p-6 rounded-xl font-bold flex justify-center gap-2 shadow-md transition-transform active:scale-95 ${currentStep === 0 ? 'opacity-30' : 'bg-gray-200 text-gray-800'}`}
+                            aria-label="Paso anterior"
                         >
                             <ChevronLeft /> Anterior
                         </button>
                         <button 
                             disabled={currentStep === activeRecipe.steps.length - 1}
                             onClick={() => setCurrentStep(c => c + 1)}
-                            className={`p-4 rounded-xl font-bold flex justify-center gap-2 ${currentStep === activeRecipe.steps.length - 1 ? 'opacity-30' : btnPrimary}`}
+                            className={`p-6 rounded-xl font-bold flex justify-center gap-2 shadow-md transition-transform active:scale-95 ${currentStep === activeRecipe.steps.length - 1 ? 'opacity-30' : btnPrimary}`}
+                            aria-label="Siguiente paso"
                         >
                             Siguiente <ChevronRight />
                         </button>
@@ -477,24 +591,29 @@ export default function App() {
                     {/* ACCESSIBLE BOTTOM VOICE BAR */}
                     <button 
                         onClick={toggleVoice}
-                        className={`fixed bottom-0 left-0 right-0 py-6 flex flex-col items-center justify-center transition-colors duration-300 border-t-4 z-50
+                        className={`fixed bottom-0 left-0 right-0 py-8 flex flex-col items-center justify-center transition-colors duration-300 border-t-4 z-50
                             ${status === 'listening' 
                                 ? 'bg-yellow-400 text-black border-red-500 animate-pulse' 
                                 : settings.highContrast ? 'bg-gray-800 text-yellow-400 border-yellow-400' : 'bg-christmas-red text-white border-christmas-gold'
                             }`}
+                        aria-label={status === 'listening' 
+                            ? "Micrófono activado. Te estoy escuchando. Di un comando." 
+                            : "Activar control por voz. Toca para hablar. Comandos disponibles: Siguiente, Anterior, Repetir, Temporizador, Salir."}
+                        aria-live="assertive"
+                        aria-pressed={status === 'listening'}
                     >
                          {status === 'listening' ? (
                              <>
                                 <Mic size={40} className="animate-bounce" />
-                                <span className="text-lg font-black tracking-widest mt-1 uppercase">TE ESCUCHO...</span>
+                                <span className="text-lg font-black tracking-widest mt-2 uppercase">TE ESCUCHO...</span>
                              </>
                          ) : (
                              <>
                                 <div className="flex items-center gap-2">
-                                    <Mic size={24} />
-                                    <span className="text-xl font-bold uppercase">Toca para hablar</span>
+                                    <Mic size={28} />
+                                    <span className="text-2xl font-bold uppercase">Toca para hablar</span>
                                 </div>
-                                <span className="text-xs opacity-80 mt-1">Di: "Siguiente", "Atrás", "Repetir", "Temporizador"</span>
+                                <span className="text-xs opacity-90 mt-2 font-medium">Di: "Siguiente", "Atrás", "Repetir", "Temporizador"</span>
                              </>
                          )}
                     </button>
