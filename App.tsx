@@ -4,9 +4,8 @@ import { Category, Recipe, ViewState, AppSettings, Ingredient } from './types';
 import { SAMPLE_RECIPES } from './data';
 import { generateCookingAssistance } from './services/geminiService';
 import { 
-  Mic, ChevronLeft, ChevronRight, Clock, Play, Pause, RotateCcw, 
-  Home, ShoppingCart, Heart, Settings as SettingsIcon, ChefHat, 
-  Volume2, VolumeX, Plus, Trash2, Check, X 
+  Mic, ChevronLeft, ChevronRight, Clock, Play, ShoppingCart, Heart, Settings as SettingsIcon, ChefHat, 
+  Plus, Trash2, X 
 } from 'lucide-react';
 
 // Polyfill para SpeechRecognition
@@ -258,8 +257,8 @@ export default function App() {
             if (direction === 'same' && currentStep === previousStepRef.current) return;
 
             let introPhrase = `Paso ${currentStep + 1} de ${recipe.steps.length}.`;
-            if (direction === 'next') introPhrase = `Muy bien. Avanzando al paso ${currentStep + 1}.`;
-            else if (direction === 'prev') introPhrase = `Entendido. Volviendo al paso ${currentStep + 1}.`;
+            if (direction === 'next') introPhrase = `Avanzando al paso ${currentStep + 1}:`;
+            else if (direction === 'prev') introPhrase = `Volviendo al paso ${currentStep + 1}:`;
 
             previousStepRef.current = currentStep;
 
@@ -446,7 +445,11 @@ export default function App() {
                                 className={`rounded-xl overflow-hidden border-2 cursor-pointer transition-all hover:shadow-2xl group flex flex-col ${cardBg}`}
                             >
                                 <div className="h-48 overflow-hidden relative border-b-[3px] border-christmas-gold">
-                                    <img src={recipe.imageUrl} alt="" className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                                    <img 
+                                        src={recipe.imageUrl} 
+                                        alt={`Foto de ${recipe.title}. ${recipe.description}`} 
+                                        className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" 
+                                    />
                                     <div className="absolute top-2 right-2">
                                         {favorites.includes(recipe.id) && <Heart fill="red" className="text-red-500 drop-shadow-md" />}
                                     </div>
@@ -485,7 +488,7 @@ export default function App() {
                         <div className="relative h-72 md:h-96">
                             <img 
                                 src={activeRecipe.imageUrl} 
-                                alt={activeRecipe.title} 
+                                alt={`Plato: ${activeRecipe.title}. Descripción: ${activeRecipe.description}`} 
                                 className="w-full h-full object-cover rounded-b-[2.5rem] border-b-[3px] border-christmas-gold shadow-lg z-10 relative" 
                             />
                             <button 
