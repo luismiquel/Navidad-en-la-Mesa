@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Category, Recipe, ViewState, AppSettings, Ingredient } from './types';
+import { Category, Recipe, ViewState, AppSettings, Ingredient, AppStatus } from './types';
 import { SAMPLE_RECIPES } from './data';
 import { generateCookingAssistance } from './services/geminiService';
 import { 
-  Mic, ChevronLeft, ChevronRight, Clock, Play, Pause, RotateCcw, 
-  Home, ShoppingCart, Heart, Settings as SettingsIcon, ChefHat, 
-  Volume2, VolumeX, Plus, Trash2, Check, X 
+  Mic, ChevronLeft, ChevronRight, Clock, Play, ShoppingCart, Heart, Settings as SettingsIcon, ChefHat, 
+  Plus, Trash2, X 
 } from 'lucide-react';
 
 // Polyfill para SpeechRecognition
@@ -37,7 +36,7 @@ export default function App() {
 
   // Cooking Mode State
   const [currentStep, setCurrentStep] = useState(0);
-  const [status, setStatus] = useState<'idle' | 'listening' | 'speaking' | 'processing'>('idle');
+  const [status, setStatus] = useState<AppStatus>('idle');
   
   // Timer State
   const [timerActive, setTimerActive] = useState(false);
@@ -344,7 +343,7 @@ export default function App() {
       }
   };
 
-  const updateStatus = (s: any) => setStatus(s);
+  const updateStatus = (s: AppStatus) => setStatus(s);
   const toggleTimer = () => setTimerActive(!timerActive);
 
   const formatTime = (seconds: number) => {
@@ -410,7 +409,7 @@ export default function App() {
                         <p className="opacity-75">Selecciona una categoría para empezar</p>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
-                        {Object.values(Category).map(cat => (
+                        {(Object.values(Category) as Category[]).map(cat => (
                             <button 
                                 key={cat} 
                                 onClick={() => selectCategory(cat)}

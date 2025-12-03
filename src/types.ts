@@ -34,10 +34,10 @@ export interface Recipe {
   prepTimeMinutes: number;
   cookTimeMinutes: number;
   difficulty: Difficulty;
-  servingsBase: number; // Siempre 4 en esta especificación
+  servingsBase: number;
   ingredients: Ingredient[];
   steps: Step[];
-  tags: string[]; // "vegano", "sin gluten", "navidad", "tradicional"
+  tags: string[];
 }
 
 export interface AppSettings {
@@ -54,3 +54,5 @@ export type ViewState =
   | { type: 'CART' }
   | { type: 'FAVORITES' }
   | { type: 'SETTINGS' };
+
+export type AppStatus = 'idle' | 'listening' | 'speaking' | 'processing';
