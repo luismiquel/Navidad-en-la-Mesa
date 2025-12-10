@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Category, Recipe, ViewState, AppSettings, Ingredient, AppStatus } from './types';
 import { SAMPLE_RECIPES } from './data';
@@ -8,13 +7,13 @@ import {
   Plus, Trash2, X 
 } from 'lucide-react';
 
-// Polyfill para SpeechRecognition
+// Polyfill para SpeechRecognition para mayor compatibilidad
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 export default function App() {
   // --- STATE ---
   const [showIntro, setShowIntro] = useState(true);
-  
+   
   // Navigation & Settings
   const [view, setView] = useState<ViewState>({ type: 'HOME' });
   const [settings, setSettings] = useState<AppSettings>({
@@ -37,7 +36,7 @@ export default function App() {
   // Cooking Mode State
   const [currentStep, setCurrentStep] = useState(0);
   const [status, setStatus] = useState<AppStatus>('idle');
-  
+   
   // Timer State
   const [timerActive, setTimerActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
