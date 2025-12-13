@@ -2,5 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
+:root { font-family: Inter, system-ui, Arial, sans-serif; }
 *:focus-visible { outline: 4px solid #FCD34D; outline-offset: 2px; }
 html { scroll-behavior: smooth; }
