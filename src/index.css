@@ -1,0 +1,6 @@
+﻿@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+*:focus-visible { outline: 4px solid #FCD34D; outline-offset: 2px; }
+html { scroll-behavior: smooth; }
