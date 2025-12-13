@@ -2,6 +2,8 @@
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
-  base: "/Navidad-en-la-Mesa/",
+  // En Vercel: base "/"
+  // En GitHub Pages: base "/Navidad-en-la-Mesa/"
+  base: process.env.VERCEL ? "/" : "/Navidad-en-la-Mesa/",
   plugins: [react()]
 });
