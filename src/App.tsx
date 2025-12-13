@@ -202,13 +202,9 @@ export default function App() {
   // --- APP LOGIC ---
 
   const handleEnterApp = () => {
-  // Entrar SIEMPRE, sin depender de voz ni de APIs del navegador
   setShowIntro(false);
-
-  // Opcional: desactivar cualquier audio sin romper la navegación
   try { window.speechSynthesis?.cancel(); } catch {}
-
-  // No hablamos aquí. Ya lo añadiremos luego con seguridad.
+  setStatus("idle");
 };
 
   // Timer Logic
@@ -777,6 +773,7 @@ export default function App() {
     </div>
   );
 }
+
 
 
 
