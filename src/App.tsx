@@ -368,12 +368,12 @@ export default function App() {
 
   if (showIntro) {
       return (
-          <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-8 text-center ${settings.highContrast ? 'bg-black' : 'bg-christmas-red'} text-white`}>
+          <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center p-8 text-center ${settings.highContrast ? 'bg-black' : 'bg-christmas-red'} text-white`}>
               <ChefHat size={80} className="mb-6 animate-bounce text-christmas-accent" />
               <h1 className="text-5xl font-serif font-bold mb-4">Navidad en la Mesa</h1>
               <p className="text-xl mb-12 opacity-90 max-w-md">Tu asistente culinario festivo y accesible.</p>
               <button 
-                  onClick={() => { console.log("CLICK Entrar a la Cocina"); alert("Click detectado ✅"); handleEnterApp(); }}
+                  onClick={handleEnterApp}
                   className={`px-12 py-6 text-2xl font-bold rounded-full shadow-2xl transition-transform transform active:scale-95 ${settings.highContrast ? 'bg-christmas-accent text-black' : 'bg-christmas-green text-white border-4 border-christmas-gold'}`}
               >
                   Entrar a la Cocina
@@ -777,5 +777,7 @@ export default function App() {
     </div>
   );
 }
+
+
 
 
