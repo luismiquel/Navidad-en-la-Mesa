@@ -1,4 +1,5 @@
-﻿import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Category, Recipe, ViewState, AppSettings, Ingredient, AppStatus } from './types';
 import { SAMPLE_RECIPES } from './data';
 import { generateCookingAssistance } from './services/geminiService';
@@ -7,13 +8,13 @@ import {
   Plus, Trash2, X 
 } from 'lucide-react';
 
-// Polyfill para SpeechRecognition para mayor compatibilidad
+// Polyfill para SpeechRecognition
 const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
 export default function App() {
   // --- STATE ---
   const [showIntro, setShowIntro] = useState(true);
-   
+  
   // Navigation & Settings
   const [view, setView] = useState<ViewState>({ type: 'HOME' });
   const [settings, setSettings] = useState<AppSettings>({
@@ -36,7 +37,7 @@ export default function App() {
   // Cooking Mode State
   const [currentStep, setCurrentStep] = useState(0);
   const [status, setStatus] = useState<AppStatus>('idle');
-   
+  
   // Timer State
   const [timerActive, setTimerActive] = useState(false);
   const [timeLeft, setTimeLeft] = useState(0);
@@ -112,7 +113,7 @@ export default function App() {
         return;
     }
     if (!navigator.onLine) {
-        speakRobust("No tienes conexiÃ³n a internet para el asistente.");
+        speakRobust("No tienes conexión a internet para el asistente.");
         return;
     }
     if (status === 'speaking') {
@@ -152,22 +153,22 @@ export default function App() {
   };
 
   const handleVoiceCommand = (command: string) => {
-      console.log("Comando oÃ­do:", command);
+      console.log("Comando oído:", command);
       
-      // Comandos de NavegaciÃ³n
-      if (command.includes('siguiente') || command.includes('avanza') || command.includes('prÃ³ximo') || command.includes('pasa')) {
+      // Comandos de Navegación
+      if (command.includes('siguiente') || command.includes('avanza') || command.includes('próximo') || command.includes('pasa')) {
           if (activeRecipe && currentStep < activeRecipe.steps.length - 1) {
               setCurrentStep(prev => prev + 1);
           } else {
-              speakRobust("Ya estÃ¡s en el Ãºltimo paso.");
+              speakRobust("Ya estás en el último paso.");
           }
-      } else if (command.includes('anterior') || command.includes('atrÃ¡s') || command.includes('vuelve') || command.includes('retrocede')) {
+      } else if (command.includes('anterior') || command.includes('atrás') || command.includes('vuelve') || command.includes('retrocede')) {
           if (currentStep > 0) {
               setCurrentStep(prev => prev - 1);
           } else {
-              speakRobust("EstÃ¡s en el primer paso.");
+              speakRobust("Estás en el primer paso.");
           }
-      } else if (command.includes('repetir') || command.includes('repite') || command.includes('quÃ©')) {
+      } else if (command.includes('repetir') || command.includes('repite') || command.includes('qué')) {
           speakRobust(activeRecipe?.steps[currentStep].description || "");
       } else if (command.includes('salir') || command.includes('terminar') || command.includes('inicio')) {
           goHome();
@@ -202,10 +203,12 @@ export default function App() {
   // --- APP LOGIC ---
 
   const handleEnterApp = () => {
-  setShowIntro(false);
-  try { window.speechSynthesis?.cancel(); } catch {}
-  setStatus("idle");
-};
+    setShowIntro(false);
+    window.speechSynthesis.cancel();
+    setTimeout(() => {
+        speakRobust("Bienvenido a Navidad en la Mesa. ¿Qué te apetece cocinar hoy?", () => setStatus('idle'));
+    }, 500);
+  };
 
   // Timer Logic
   useEffect(() => {
@@ -214,7 +217,7 @@ export default function App() {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
              if (prev <= 1) {
-                 speakRobust("Â¡El tiempo ha terminado!");
+                 speakRobust("¡El tiempo ha terminado!");
                  setTimerActive(false);
                  return 0;
              }
@@ -275,12 +278,12 @@ export default function App() {
       if (activeRecipe) {
           const newIngredients = [...cart, ...activeRecipe.ingredients];
           setCart(newIngredients);
-          alert('Ingredientes aÃ±adidos al carro');
+          alert('Ingredientes añadidos al carro');
       }
   };
 
   const clearCart = () => {
-      if (window.confirm('Â¿EstÃ¡s seguro de que quieres vaciar la lista de la compra?')) {
+      if (window.confirm('¿Estás seguro de que quieres vaciar la lista de la compra?')) {
           setCart([]);
       }
   };
@@ -331,7 +334,7 @@ export default function App() {
   const askGemini = async (query?: string) => {
       if (!activeRecipe) return;
       updateStatus('processing');
-      const q = query || "ExplÃ­came este paso";
+      const q = query || "Explícame este paso";
       try {
         const text = await generateCookingAssistance(activeRecipe, currentStep, q);
         speakRobust(text, () => setStatus('idle'));
@@ -364,7 +367,7 @@ export default function App() {
 
   if (showIntro) {
       return (
-          <div className={`fixed inset-0 z-[9999] flex flex-col items-center justify-center p-8 text-center ${settings.highContrast ? 'bg-black' : 'bg-christmas-red'} text-white`}>
+          <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-8 text-center ${settings.highContrast ? 'bg-black' : 'bg-christmas-red'} text-white`}>
               <ChefHat size={80} className="mb-6 animate-bounce text-christmas-accent" />
               <h1 className="text-5xl font-serif font-bold mb-4">Navidad en la Mesa</h1>
               <p className="text-xl mb-12 opacity-90 max-w-md">Tu asistente culinario festivo y accesible.</p>
@@ -402,8 +405,8 @@ export default function App() {
             {view.type === 'HOME' && (
                 <div className="space-y-8 animate-fade-in">
                     <div className="text-center py-8">
-                        <h1 className={`${headingSize} font-serif font-bold ${accentText} mb-2`}>Â¿QuÃ© cocinamos hoy?</h1>
-                        <p className="opacity-75">Selecciona una categorÃ­a para empezar</p>
+                        <h1 className={`${headingSize} font-serif font-bold ${accentText} mb-2`}>¿Qué cocinamos hoy?</h1>
+                        <p className="opacity-75">Selecciona una categoría para empezar</p>
                     </div>
                     <div className="grid gap-4 sm:grid-cols-2">
                         {(Object.values(Category) as Category[]).map(cat => (
@@ -421,7 +424,7 @@ export default function App() {
                         ))}
                     </div>
                     <div className="mt-8 p-6 rounded-xl bg-christmas-gold/10 border border-christmas-gold/30 text-center">
-                        <h3 className="font-bold text-lg mb-2">Â¡Feliz Navidad!</h3>
+                        <h3 className="font-bold text-lg mb-2">¡Feliz Navidad!</h3>
                         <p className="italic opacity-80">Hay {SAMPLE_RECIPES.length} recetas esperando ser cocinadas.</p>
                     </div>
                 </div>
@@ -485,7 +488,7 @@ export default function App() {
                         <div className="relative h-72 md:h-96">
                             <img 
                                 src={activeRecipe.imageUrl} 
-                                alt={`Plato: ${activeRecipe.title}. DescripciÃ³n: ${activeRecipe.description}`} 
+                                alt={`Plato: ${activeRecipe.title}. Descripción: ${activeRecipe.description}`} 
                                 className="w-full h-full object-cover rounded-b-[2.5rem] border-b-[3px] border-christmas-gold shadow-lg z-10 relative" 
                             />
                             <button 
@@ -532,7 +535,7 @@ export default function App() {
                                             onClick={addToCart}
                                             className={`text-sm flex items-center gap-1 font-bold px-4 py-2 rounded-full transition-colors shadow-sm ${settings.highContrast ? 'bg-christmas-accent text-black' : 'bg-christmas-red text-white hover:bg-red-800'}`}
                                         >
-                                            <Plus size={16}/> AÃ±adir al carro
+                                            <Plus size={16}/> Añadir al carro
                                         </button>
                                     </div>
                                     <ul className="space-y-3">
@@ -550,7 +553,7 @@ export default function App() {
                                         {activeRecipe.steps.slice(0, 3).map((s, i) => (
                                             <p key={i} className="line-clamp-2"><span className="font-bold mr-2 text-christmas-gold">{i+1}.</span> {s.description}</p>
                                         ))}
-                                        {activeRecipe.steps.length > 3 && <p className="italic">... y {activeRecipe.steps.length - 3} pasos mÃ¡s.</p>}
+                                        {activeRecipe.steps.length > 3 && <p className="italic">... y {activeRecipe.steps.length - 3} pasos más.</p>}
                                     </div>
                                 </div>
                             </div>
@@ -559,7 +562,7 @@ export default function App() {
                                 onClick={() => startCooking(activeRecipe.id)} 
                                 className={`w-full py-5 text-2xl font-bold rounded-xl shadow-xl flex items-center justify-center gap-3 transition-transform active:scale-95 border-2 border-transparent hover:border-white/20 ${btnPrimary}`}
                             >
-                                <Play fill="currentColor" size={28} /> Â¡Empezar a Cocinar!
+                                <Play fill="currentColor" size={28} /> ¡Empezar a Cocinar!
                             </button>
                         </div>
                     </div>
@@ -584,8 +587,8 @@ export default function App() {
                     {cart.length === 0 ? (
                         <div className={`text-center py-20 rounded-xl ${cardBg}`}>
                             <ShoppingCart size={64} className="mx-auto mb-4 opacity-20" />
-                            <p className="text-xl opacity-60">Tu carrito estÃ¡ vacÃ­o.</p>
-                            <p className="opacity-40 text-sm">AÃ±ade ingredientes desde las recetas.</p>
+                            <p className="text-xl opacity-60">Tu carrito está vacío.</p>
+                            <p className="opacity-40 text-sm">Añade ingredientes desde las recetas.</p>
                         </div>
                     ) : (
                         <div className={`rounded-xl shadow-lg overflow-hidden ${cardBg}`}>
@@ -613,7 +616,7 @@ export default function App() {
                     <button onClick={goHome} className="flex items-center gap-2 opacity-70 hover:opacity-100">
                         <ChevronLeft /> Volver al inicio
                     </button>
-                    <h2 className={`${headingSize} font-serif font-bold ${accentText}`}>ConfiguraciÃ³n</h2>
+                    <h2 className={`${headingSize} font-serif font-bold ${accentText}`}>Configuración</h2>
                     
                     <div className={`p-6 rounded-xl shadow-lg space-y-8 ${cardBg}`}>
                         {/* High Contrast */}
@@ -634,7 +637,7 @@ export default function App() {
                         <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 pt-6">
                             <div>
                                 <h3 className="text-xl font-bold">Asistente de Voz</h3>
-                                <p className="opacity-70 text-sm">Lectura automÃ¡tica y comandos de voz.</p>
+                                <p className="opacity-70 text-sm">Lectura automática y comandos de voz.</p>
                             </div>
                             <button 
                                 onClick={() => setSettings({...settings, voiceEnabled: !settings.voiceEnabled})}
@@ -646,7 +649,7 @@ export default function App() {
 
                         {/* Font Size */}
                         <div className="border-t border-gray-200 dark:border-gray-700 pt-6">
-                            <h3 className="text-xl font-bold mb-4">TamaÃ±o de Texto</h3>
+                            <h3 className="text-xl font-bold mb-4">Tamaño de Texto</h3>
                             <div className="grid grid-cols-3 gap-4">
                                 {[1, 1.25, 1.5].map((size) => (
                                     <button 
@@ -746,7 +749,7 @@ export default function App() {
                                     ? 'bg-christmas-accent border-christmas-red text-black animate-pulse' 
                                     : settings.highContrast ? 'bg-yellow-400 text-black border-white' : 'bg-christmas-red text-white border-christmas-gold'
                                 }`}
-                            aria-label={status === 'listening' ? "MicrÃ³fono activo. Di un comando." : "Activar control por voz. Comandos disponibles: Siguiente, Anterior, Repetir, Temporizador, Salir."}
+                            aria-label={status === 'listening' ? "Micrófono activo. Di un comando." : "Activar control por voz. Comandos disponibles: Siguiente, Anterior, Repetir, Temporizador, Salir."}
                             aria-live="assertive"
                             aria-pressed={status === 'listening'}
                         >
@@ -761,7 +764,7 @@ export default function App() {
                                         <Mic size={40} />
                                         <span className="text-3xl font-bold uppercase tracking-wide">Toca para hablar</span>
                                     </div>
-                                    <span className="text-sm font-medium opacity-90 bg-black/10 px-4 py-1 rounded-full">Di "Siguiente", "AtrÃ¡s", "Repetir", "Temporizador"</span>
+                                    <span className="text-sm font-medium opacity-90 bg-black/10 px-4 py-1 rounded-full">Di "Siguiente", "Atrás", "Repetir", "Temporizador"</span>
                                  </div>
                              )}
                         </button>
@@ -773,8 +776,3 @@ export default function App() {
     </div>
   );
 }
-
-
-
-
-

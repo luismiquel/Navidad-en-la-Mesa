@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-</div>
+# Navidad en la Mesa 🎄
 
-# Run and deploy your AI Studio app
+Tu asistente culinario definitivo para las fiestas decembrinas. Esta aplicación está diseñada para acompañarte en la cocina, facilitando la preparación de los banquetes más especiales del año con tecnología de vanguardia y un enfoque total en la accesibilidad.
 
-This contains everything you need to run your app locally.
+## 🌟 Características Principales
 
-View your app in AI Studio: https://ai.studio/apps/drive/1fO_2L3_D5PWPO64-VPsvwtsOvoOoHLro
+- **Catálogo Gourmet**: Más de 160 recetas categorizadas en aperitivos, primeros, segundos y postres.
+- **Asistente de Voz Inteligente**: Cocina sin tocar la pantalla. El asistente te lee los pasos y responde a tus dudas culinarias en tiempo real.
+- **Modo Cocina Accesible**: Interfaz de alto contraste, control por voz optimizado y tamaños de fuente ajustables para que cualquier persona pueda disfrutar de la cocina.
+- **Lista de Compra Inteligente**: Añade ingredientes directamente desde las recetas y gestiona tus compras de forma organizada.
+- **Temporizadores Integrados**: Control de tiempos preciso para cada paso de la receta.
+- **Favoritos**: Guarda tus platos estrella para tenerlos siempre a mano.
 
-## Run Locally
+## 🛠️ Tecnología
 
-**Prerequisites:**  Node.js
+Desarrollado con estándares modernos de ingeniería de software:
+- **Frontend**: React 19 con TypeScript para una robustez máxima.
+- **Diseño**: Tailwind CSS con un sistema de diseño festivo y elegante.
+- **Inteligencia Artificial**: Procesamiento de lenguaje natural para asistencia interactiva durante el cocinado.
+- **Accesibilidad**: Cumplimiento de pautas de contraste y navegación simplificada para dispositivos móviles y escritorio.
 
+## 📖 Cómo usar el Asistente
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. **Selecciona tu receta**: Navega por las categorías festivas.
+2. **Prepara los ingredientes**: Añádelos a tu lista de compra si te falta algo.
+3. **Inicia el Modo Cocina**: Pulsa el botón principal y deja que el asistente te guíe.
+4. **Comandos de voz**: Di "Siguiente", "Atrás" o "Repetir" para moverte por los pasos. También puedes preguntar cosas como "¿Cuánto tiempo falta?" o "¿Qué ingredientes necesito?".
+
+---
+*Navidad en la Mesa - Creado para hacer que tus cenas sean inolvidables.*

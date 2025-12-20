@@ -1,4 +1,4 @@
-// Definimos Category como Enum para usar Category.APERITIVO, etc.
+
 export enum Category {
   APERITIVO = 'Aperitivos',
   PRIMERO = 'Primeros',
@@ -6,7 +6,6 @@ export enum Category {
   POSTRE = 'Postres'
 }
 
-// Definimos Difficulty como Enum
 export enum Difficulty {
   FACIL = 'Fácil',
   MEDIA = 'Media',
@@ -16,14 +15,14 @@ export enum Difficulty {
 export interface Ingredient {
   name: string;
   amount: number;
-  unit: string;
-  category?: string; // Opcional, por si en el futuro quieres agrupar la lista de compra
+  unit: string; // "g", "ml", "unidades", "cucharadas", "pizca"
+  category?: string;
 }
 
 export interface Step {
   order: number;
   description: string;
-  timerMinutes?: number; // Opcional
+  timerMinutes?: number;
 }
 
 export interface Recipe {
@@ -43,7 +42,7 @@ export interface Recipe {
 
 export interface AppSettings {
   highContrast: boolean;
-  fontSizeMultiplier: number;
+  fontSizeMultiplier: number; // 1 (Normal), 1.25 (Grande), 1.5 (Muy grande)
   voiceEnabled: boolean;
 }
 
@@ -53,6 +52,7 @@ export type ViewState =
   | { type: 'RECIPE'; recipeId: string }
   | { type: 'COOKING'; recipeId: string }
   | { type: 'CART' }
+  | { type: 'FAVORITES' }
   | { type: 'SETTINGS' };
 
 export type AppStatus = 'idle' | 'listening' | 'speaking' | 'processing';
