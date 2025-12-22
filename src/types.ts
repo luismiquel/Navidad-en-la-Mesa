@@ -15,7 +15,7 @@ export enum Difficulty {
 export interface Ingredient {
   name: string;
   amount: number;
-  unit: string; // "g", "ml", "unidades", "cucharadas", "pizca"
+  unit: string;
   category?: string;
 }
 
@@ -42,7 +42,7 @@ export interface Recipe {
 
 export interface AppSettings {
   highContrast: boolean;
-  fontSizeMultiplier: number; // 1 (Normal), 1.25 (Grande), 1.5 (Muy grande)
+  fontSizeMultiplier: number;
   voiceEnabled: boolean;
 }
 
@@ -52,7 +52,13 @@ export type ViewState =
   | { type: 'RECIPE'; recipeId: string }
   | { type: 'COOKING'; recipeId: string }
   | { type: 'CART' }
-  | { type: 'FAVORITES' }
   | { type: 'SETTINGS' };
 
 export type AppStatus = 'idle' | 'listening' | 'speaking' | 'processing';
+
+export interface CookingProgress {
+  recipeId: string;
+  currentStep: number;
+  preppedIngredients: string[];
+  startTime: number;
+}

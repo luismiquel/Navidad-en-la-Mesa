@@ -1,57 +1,52 @@
 
-import { GoogleGenAI } from "@google/genai";
 import { Recipe } from '../types';
 
 /**
- * Motor de asistencia culinaria utilizando la API de Gemini para respuestas inteligentes y naturales.
+ * MOTOR DE LÓGICA LOCAL PRO (V2)
+ * Sin dependencias externas. 100% Offline.
  */
+
 export const generateCookingAssistance = async (
   recipe: Recipe,
   currentStepIndex: number,
-  userQuery: string
+  userQuery: string,
+  servings: number = 4
 ): Promise<string> => {
-  // Inicialización del cliente de IA utilizando la clave de API del entorno.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+  const query = userQuery.toLowerCase().trim();
   const currentStep = recipe.steps[currentStepIndex];
-
-  // Construcción del prompt de sistema para guiar al modelo.
-  const prompt = `
-    Eres un asistente de cocina amable y festivo para la aplicación "Navidad en la Mesa".
-    Tu tarea es ayudar al usuario a preparar la receta: "${recipe.title}".
-    
-    Información relevante:
-    - Paso actual de la receta (${currentStepIndex + 1} de ${recipe.steps.length}): "${currentStep?.description || 'Receta finalizada'}"
-    - Lista de ingredientes necesarios: ${recipe.ingredients.map(i => `${i.amount} ${i.unit} de ${i.name}`).join(', ')}
-    
-    Pregunta o instrucción del usuario: "${userQuery}"
-    
-    Reglas de respuesta:
-    1. Sé breve y conciso (máximo 30 palabras).
-    2. Responde en un tono cálido y navideño.
-    3. No utilices formato Markdown (sin asteriscos, negritas ni listas).
-    4. Céntrate exclusivamente en ayudar con la receta actual.
-  `;
-
-  try {
-    // Generación de contenido con el modelo Gemini 3 Flash, ideal para respuestas rápidas y precisas.
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: prompt,
-    });
-
-    // Acceso a la propiedad .text para obtener la respuesta generada.
-    const text = response.text;
-    
-    return text || "Lo siento, no he podido procesar tu duda en este momento.";
-  } catch (error) {
-    console.error("Error al conectar con la API de Gemini:", error);
-    
-    // Fallback contextual en caso de error de conexión.
-    const lowerQuery = userQuery.toLowerCase();
-    if (lowerQuery.includes("ingrediente")) {
-        return `Para esta receta necesitas varios ingredientes como ${recipe.ingredients[0].name}. ¿Quieres que te repita el paso actual?`;
+  const ratio = servings / recipe.servingsBase;
+  
+  // 1. Lógica de Cantidades Escaladas
+  if (/\b(cuanto|cantidad|proporcion|gramos|mucho)\b/i.test(query)) {
+    const ingredient = recipe.ingredients.find(i => query.includes(i.name.toLowerCase().split(' ')[0]));
+    if (ingredient) {
+      const scaledAmount = (ingredient.amount * ratio).toFixed(1).replace('.0', '');
+      return `Para ${servings} personas necesitas ${scaledAmount} ${ingredient.unit} de ${ingredient.name}.`;
     }
-    
-    return "En este momento no puedo hablar con el gran chef, pero te recuerdo que estamos en el paso: " + (currentStep?.description || "final");
   }
+
+  // 2. Lógica de Ingredientes Totales
+  if (/\b(ingredientes|que lleva|lista|necesito)\b/i.test(query)) {
+    const list = recipe.ingredients.map(i => i.name).slice(0, 5).join(', ');
+    return `Lleva ${list} y otros. ¿Quieres que te diga las cantidades para ${servings} personas?`;
+  }
+
+  // 3. Lógica de Tiempo y Finalización
+  if (/\b(tiempo|cuanto falta|terminar|minutos|hora)\b/i.test(query)) {
+    const totalRem = recipe.cookTimeMinutes; 
+    return `Este paso dura unos ${currentStep.timerMinutes || 'unos'} minutos. La receta completa son ${recipe.cookTimeMinutes} minutos en total.`;
+  }
+
+  // 4. Lógica de Pasos
+  if (/\b(repite|paso|que hago|entiendo|ayuda)\b/i.test(query)) {
+    return `Estamos en el paso ${currentStepIndex + 1}. Tienes que: ${currentStep.description}. ¡Vas muy bien!`;
+  }
+
+  // 5. Lógica de Sugerencias (Local)
+  if (/\b(sugerencia|recomend|otro plato|consejo)\b/i.test(query)) {
+    return `Mi consejo: Prepara todos los ingredientes antes de encender el fuego. ¡La organización es clave en Navidad!`;
+  }
+
+  // Fallback
+  return `Estoy aquí para ayudarte con el paso ${currentStepIndex + 1}. ¿Quieres saber las cantidades o que te repita la instrucción?`;
 };
