@@ -36,7 +36,7 @@ export default function App() {
   useEffect(() => { localStorage.setItem('christmas_menu', JSON.stringify(menuIds)); }, [menuIds]);
   useEffect(() => { localStorage.setItem('nav_settings', JSON.stringify(settings)); }, [settings]);
 
-  // --- LÓGICA DE VOZ (NATIVA DEL NAVEGADOR) ---
+  // --- LÓGICA DE VOZ NATIVA ---
   const speak = useCallback((text: string) => {
     if (!settings.voiceEnabled) return;
     window.speechSynthesis.cancel();
@@ -45,7 +45,7 @@ export default function App() {
     window.speechSynthesis.speak(utterance);
   }, [settings.voiceEnabled]);
 
-  // --- FILTRADO Y CARRITO ---
+  // --- FILTRADO ---
   const filteredRecipes = useMemo(() => 
     SAMPLE_RECIPES.filter(r => {
       const matchesSearch = r.title.toLowerCase().includes(searchTerm.toLowerCase());
@@ -60,7 +60,7 @@ export default function App() {
 
   const menuRecipes = useMemo(() => SAMPLE_RECIPES.filter(r => menuIds.includes(r.id)), [menuIds]);
 
-  // Agregador de ingredientes: suma cantidades de ingredientes con el mismo nombre
+  // Agregador de ingredientes inteligente
   const shoppingList = useMemo(() => {
     const map = new Map<string, { amount: number, unit: string }>();
     menuRecipes.forEach(recipe => {
@@ -78,7 +78,7 @@ export default function App() {
     return Array.from(map.entries());
   }, [menuRecipes, servings]);
 
-  // --- ESTILOS DE ACCESIBILIDAD ---
+  // --- ESTILOS DINÁMICOS ---
   const baseFontSize = 16 * settings.fontSizeMultiplier;
   const bgColor = settings.highContrast ? 'bg-black' : 'bg-christmas-cream';
   const textColor = settings.highContrast ? 'text-white' : 'text-christmas-dark';
@@ -105,10 +105,11 @@ export default function App() {
 
   return (
     <div className={`min-h-screen flex flex-col ${bgColor} ${textColor} font-sans transition-all duration-300`} style={{ fontSize: `${baseFontSize}px` }}>
-      {/* HEADER COMPACTO */}
-      <header className={`p-4 flex justify-between items-center shadow-lg sticky top-0 z-50 ${settings.highContrast ? 'bg-black border-b-2 border-yellow-400' : 'bg-christmas-red text-white'}`}>
+      
+      {/* HEADER FIJO SUPERIOR */}
+      <header className={`p-4 flex justify-between items-center shadow-lg sticky top-0 z-[60] ${settings.highContrast ? 'bg-black border-b-2 border-yellow-400' : 'bg-christmas-red text-white'}`}>
         <div 
-          onClick={() => { setView({type: 'HOME'}); setActiveCategory(null); }} 
+          onClick={() => { setView({type: 'HOME'}); setActiveCategory(null); window.scrollTo(0,0); }} 
           className="flex items-center gap-3 cursor-pointer group"
           role="button"
         >
@@ -127,8 +128,9 @@ export default function App() {
       <main className="flex-1 w-full max-w-5xl mx-auto p-4 md:p-8 pb-32">
         {view.type === 'HOME' && (
           <div className="space-y-8 animate-in fade-in duration-500">
-            {/* BUSCADOR Y PESTAÑAS */}
-            <div className="sticky top-[80px] z-40 space-y-4 pt-2 pb-4 bg-inherit">
+            
+            {/* BARRA DE NAVEGACIÓN Y BUSQUEDA PERSISTENTE (STICKY) */}
+            <div className={`sticky top-[73px] z-[50] space-y-4 pt-4 pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b shadow-sm ${bgColor} ${settings.highContrast ? 'border-yellow-400' : 'border-christmas-gold/10'}`}>
               <div className="relative">
                 <Search className={`absolute left-4 top-1/2 -translate-y-1/2 ${settings.highContrast ? 'text-yellow-400' : 'text-christmas-gold'}`} size={20} />
                 <input 
@@ -137,21 +139,22 @@ export default function App() {
                   className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 focus:ring-4 outline-none transition-all ${cardBg}`}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
+                  aria-label="Buscar recetas"
                 />
               </div>
 
-              {/* PESTAÑAS DE CATEGORÍA - Aquí están tus pestañas! */}
-              <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+              {/* PESTAÑAS DE CATEGORÍA - SIEMPRE ARRIBA */}
+              <nav className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label="Categorías">
                 <button
-                  onClick={() => setActiveCategory(null)}
+                  onClick={() => { setActiveCategory(null); window.scrollTo(0,0); }}
                   className={`px-5 py-3 rounded-xl font-bold whitespace-nowrap border-2 transition-all ${!activeCategory ? (settings.highContrast ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-christmas-red text-white border-christmas-red shadow-lg') : (settings.highContrast ? 'border-yellow-400 text-yellow-400' : 'border-christmas-gold/20 text-christmas-gold bg-white')}`}
                 >
-                  Todas las Recetas
+                  Todas
                 </button>
                 {Object.values(Category).map((cat) => (
                   <button
                     key={cat}
-                    onClick={() => setActiveCategory(cat)}
+                    onClick={() => { setActiveCategory(cat); window.scrollTo(0,0); }}
                     className={`px-5 py-3 rounded-xl font-bold whitespace-nowrap border-2 transition-all ${activeCategory === cat ? (settings.highContrast ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-christmas-red text-white border-christmas-red shadow-lg') : (settings.highContrast ? 'border-yellow-400 text-yellow-400' : 'border-christmas-gold/20 text-christmas-gold bg-white')}`}
                   >
                     {cat}
@@ -160,7 +163,7 @@ export default function App() {
               </nav>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
               {filteredRecipes.map(recipe => (
                 <article key={recipe.id} className={`group rounded-[2rem] overflow-hidden border transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col ${cardBg}`}>
                   <div className="h-52 relative overflow-hidden cursor-pointer" onClick={() => { setActiveRecipe(recipe); setView({type: 'RECIPE', recipeId: recipe.id}); }}>
@@ -231,7 +234,7 @@ export default function App() {
                       onClick={() => { 
                         setView({type: 'COOKING', recipeId: activeRecipe.id}); 
                         setCurrentStep(0); 
-                        speak(`Receta de ${activeRecipe.title}. Paso uno: ${activeRecipe.steps[0].description}`); 
+                        speak(`Paso uno: ${activeRecipe.steps[0].description}`); 
                       }} 
                       className={`w-full py-6 text-2xl font-bold rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all ${btnSecondary}`}
                     >
@@ -262,7 +265,6 @@ export default function App() {
               </div>
             </div>
             
-            {/* BARRA DE PROGRESO */}
             <div className="w-full h-2 bg-black/5 rounded-full overflow-hidden">
                <div 
                  className={`h-full transition-all duration-500 ${settings.highContrast ? 'bg-yellow-400' : 'bg-christmas-green'}`}
@@ -378,7 +380,7 @@ export default function App() {
             {menuRecipes.length === 0 ? (
               <div className={`p-16 text-center rounded-[2.5rem] border-2 border-dashed ${cardBg} border-opacity-30`}>
                 <ListChecks size={48} className="mx-auto mb-4 opacity-20" />
-                <p className="opacity-50">Tu lista está vacía. Añade recetas para generar los ingredientes.</p>
+                <p className="opacity-50">Tu lista está vacía.</p>
               </div>
             ) : (
               <div className="space-y-6">
@@ -393,26 +395,15 @@ export default function App() {
                     ))}
                   </div>
                 </div>
-
-                <div className="grid gap-3">
-                  <h3 className="font-bold opacity-40 uppercase text-[10px] tracking-widest">Recetas Seleccionadas</h3>
-                  {menuRecipes.map(r => (
-                    <div key={r.id} className={`p-4 rounded-xl border flex items-center justify-between ${cardBg}`}>
-                      <span className="font-serif font-bold text-sm">{r.title}</span>
-                      <button onClick={() => toggleMenuRecipe(r.id)} className="text-red-500"><X size={18}/></button>
-                    </div>
-                  ))}
-                </div>
               </div>
             )}
           </div>
         )}
       </main>
-      
-      {/* NAVEGACIÓN RÁPIDA INFERIOR (MÓVIL) */}
+
       <footer className={`md:hidden fixed bottom-0 left-0 right-0 p-4 border-t shadow-2xl z-50 transition-all ${settings.highContrast ? 'bg-black border-yellow-400' : 'bg-white border-christmas-gold/10'}`}>
          <div className="flex justify-around items-center">
-            <button onClick={() => setView({type: 'HOME'})} className={`flex flex-col items-center gap-1 ${view.type === 'HOME' ? accentColor : 'opacity-40'}`}>
+            <button onClick={() => { setView({type: 'HOME'}); window.scrollTo(0,0); }} className={`flex flex-col items-center gap-1 ${view.type === 'HOME' ? accentColor : 'opacity-40'}`}>
                <Eye size={20} /><span className="text-[10px] font-bold">Explorar</span>
             </button>
             <button onClick={() => setView({type: 'CART'})} className={`flex flex-col items-center gap-1 ${view.type === 'CART' ? accentColor : 'opacity-40'}`}>
