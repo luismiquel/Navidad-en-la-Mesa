@@ -92,6 +92,12 @@ export default function App() {
     </div>
   );
 
+  const handleClearCart = () => {
+    if (window.confirm('¿Estás seguro de que quieres vaciar la lista de la compra?')) {
+      setMenuIds([]);
+    }
+  };
+
   if (showIntro) {
     return (
       <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 text-center transition-colors duration-700 ${settings.highContrast ? 'bg-christmas-dark text-christmas-accent' : 'bg-christmas-red text-white'}`} style={{ fontSize: `${baseFontSize}px` }}>
@@ -384,7 +390,7 @@ export default function App() {
             <div className="flex justify-between items-end">
                <h2 className="text-5xl font-serif font-bold">Mi Compra</h2>
                {menuIds.length > 0 && (
-                 <button onClick={() => setMenuIds([])} className="text-red-500 flex items-center gap-1 text-xs font-black uppercase hover:underline"><Trash2 size={20}/> Vaciar lista</button>
+                 <button onClick={handleClearCart} className="text-red-500 flex items-center gap-1 text-xs font-black uppercase hover:underline"><Trash2 size={20}/> Vaciar lista</button>
                )}
             </div>
 
