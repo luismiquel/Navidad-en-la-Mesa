@@ -1,71 +1,39 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { Recipe, Step } from '../types';
+import { Recipe } from '../types';
 
-let genAI: GoogleGenAI | null = null;
-
-const getAI = () => {
-  if (!genAI && process.env.API_KEY) {
-    genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  }
-  return genAI;
-};
-
+/**
+ * MOTOR DE ASISTENCIA CULINARIA GEMINI
+ * Este servicio utiliza la API de Gemini para proporcionar ayuda experta en tiempo real.
+ */
 export const generateCookingAssistance = async (
   recipe: Recipe,
   currentStepIndex: number,
-  userQuery: string
+  userQuery: string,
+  servings: number = 4
 ): Promise<string> => {
-  const ai = getAI();
-  if (!ai) return "Lo siento, la clave de API no está configurada.";
-
-  const currentStep = recipe.steps[currentStepIndex];
-  
-  const prompt = `
-    Eres un asistente de cocina para la app "Navidad en la Mesa".
-    Tu respuesta será LEÍDA EN VOZ ALTA por un sintetizador (TTS).
-    
-    REGLAS ESTRICTAS DE RESPUESTA:
-    1. NO uses Markdown (nada de asteriscos **, guiones -, ni almohadillas #).
-    2. Usa frases cortas y directas.
-    3. Máximo 25 palabras.
-    4. Sé amable pero conciso.
-    5. NO hagas listas, usa oraciones fluidas.
-    
-    Contexto:
-    - Receta: ${recipe.title}
-    - Paso actual (${currentStepIndex + 1}): "${currentStep?.description || 'Finalizado'}"
-    - Ingredientes: ${recipe.ingredients.map(i => `${i.amount} ${i.unit} ${i.name}`).join(', ')}
-    
-    Pregunta del usuario: "${userQuery}"
-  `;
-
   try {
-    // Timeout de 8 segundos para evitar bloqueos si la red falla
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error("Timeout")), 8000)
-    );
+    // Inicialización según las guías: nueva instancia por llamada para usar la clave más actualizada
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const step = recipe.steps[currentStepIndex];
 
-    const apiCall = ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: userQuery,
+      config: {
+        systemInstruction: `Eres un chef experto y asistente de cocina para Navidad. Estás ayudando con la receta "${recipe.title}". 
+        El usuario está actualmente en el paso ${currentStepIndex + 1}: "${step.description}".
+        Están cocinando para ${servings} personas (la receta base es para ${recipe.servingsBase}).
+        Ayuda al usuario con dudas sobre ingredientes, sustitutos y técnica culinaria. 
+        Si preguntan por cantidades, escala los ingredientes basándote en que la receta es para ${recipe.servingsBase} y ellos son ${servings}.
+        Responde en español de forma concisa, útil y con un tono cálido y festivo.`,
+      },
     });
 
-    // Carrera entre la API y el reloj
-    const response = await Promise.race([apiCall, timeoutPromise]);
-
-    // Limpiamos cualquier rastro de markdown que pueda quedar
-    return response.text?.replace(/[*#_`]/g, '').trim() || "No te he entendido bien.";
-  } catch (error: any) {
-    console.error("Error calling Gemini:", error);
-    
-    if (error.message === "Timeout") {
-        return "La conexión va lenta. Intenta preguntar de nuevo.";
-    }
-    if (error.message?.includes("Model isn't available") || error.message?.includes("503")) {
-        return "El cerebro de la cocina está saturado. Prueba en un momento.";
-    }
-    
-    return "Tengo problemas de conexión. Revisa tu internet.";
+    // Acceso a .text como propiedad según las guías de @google/genai
+    return response.text || "Lo siento, no he podido procesar tu duda. ¡Prueba a preguntarme de otra forma!";
+  } catch (error) {
+    console.error("Gemini Assistance Error:", error);
+    return "Lo siento, el asistente de cocina está teniendo problemas de conexión. Por favor, intenta de nuevo en unos momentos.";
   }
 };

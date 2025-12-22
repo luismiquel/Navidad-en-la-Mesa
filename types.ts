@@ -54,3 +54,6 @@ export type ViewState =
   | { type: 'CART' }
   | { type: 'FAVORITES' }
   | { type: 'SETTINGS' };
+
+// Fixed: Added missing AppStatus type export for voice assistance state
+export type AppStatus = 'idle' | 'listening' | 'speaking' | 'processing';
