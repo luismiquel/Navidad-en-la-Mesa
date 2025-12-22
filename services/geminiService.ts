@@ -14,7 +14,7 @@ export const generateCookingAssistance = async (
 ): Promise<string> => {
   try {
     // Inicialización según las guías: nueva instancia por llamada para usar la clave más actualizada
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
     const step = recipe.steps[currentStepIndex];
 
     const response = await ai.models.generateContent({
