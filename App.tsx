@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Category, Recipe, ViewState, AppSettings, Ingredient } from './types';
+import { Category, Recipe, ViewState, AppSettings } from './types';
 import { SAMPLE_RECIPES } from './data';
 import { 
-  ChevronLeft, ChevronRight, Clock, Play, Settings as SettingsIcon, ChefHat, 
+  ChevronLeft, Clock, Play, Settings as SettingsIcon, ChefHat, 
   Plus, X, Search, CheckCircle2, Users, Info, ListChecks, Type, Trash2, 
   Volume2, VolumeX, Eye
 } from 'lucide-react';
@@ -40,6 +40,7 @@ export default function App() {
   const speak = useCallback((text: string) => {
     if (!settings.voiceEnabled) return;
     window.speechSynthesis.cancel();
+    // Fix typo: Correct browser API class name is SpeechSynthesisUtterance
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'es-ES';
     window.speechSynthesis.speak(utterance);
@@ -60,7 +61,7 @@ export default function App() {
 
   const menuRecipes = useMemo(() => SAMPLE_RECIPES.filter(r => menuIds.includes(r.id)), [menuIds]);
 
-  // Agregador de ingredientes inteligente
+  // Agregador de ingredientes local
   const shoppingList = useMemo(() => {
     const map = new Map<string, { amount: number, unit: string }>();
     menuRecipes.forEach(recipe => {
@@ -89,15 +90,15 @@ export default function App() {
 
   if (showIntro) {
     return (
-      <div className={`fixed inset-0 z-50 flex flex-col items-center justify-center p-8 text-center transition-colors duration-700 ${settings.highContrast ? 'bg-black text-yellow-400' : 'bg-christmas-red text-white'}`} style={{ fontSize: `${baseFontSize}px` }}>
+      <div className={`fixed inset-0 z-[100] flex flex-col items-center justify-center p-8 text-center transition-colors duration-700 ${settings.highContrast ? 'bg-black text-yellow-400' : 'bg-christmas-red text-white'}`} style={{ fontSize: `${baseFontSize}px` }}>
         <ChefHat size={120} className="mb-6 animate-bounce" />
         <h1 className="text-6xl font-serif font-bold mb-4 tracking-tight">Navidad en la Mesa</h1>
-        <p className="text-xl mb-12 opacity-80 max-w-md font-light italic">Tu recetario festivo local y accesible.</p>
+        <p className="text-xl mb-12 opacity-80 max-w-md font-light italic">Recetario Festivo Local & Accesible</p>
         <button 
           onClick={() => { setShowIntro(false); speak("Bienvenido."); }} 
           className={`px-16 py-6 text-2xl font-bold rounded-2xl shadow-2xl transform active:scale-95 transition-all ${settings.highContrast ? 'bg-yellow-400 text-black' : 'bg-christmas-green border-b-8 border-green-900'}`}
         >
-          Abrir Recetario
+          Empezar a Cocinar
         </button>
       </div>
     );
@@ -106,12 +107,13 @@ export default function App() {
   return (
     <div className={`min-h-screen flex flex-col ${bgColor} ${textColor} font-sans transition-all duration-300`} style={{ fontSize: `${baseFontSize}px` }}>
       
-      {/* HEADER FIJO SUPERIOR */}
-      <header className={`p-4 flex justify-between items-center shadow-lg sticky top-0 z-[60] ${settings.highContrast ? 'bg-black border-b-2 border-yellow-400' : 'bg-christmas-red text-white'}`}>
+      {/* 1. HEADER FIJO (CAPA SUPERIOR) */}
+      <header className={`p-4 h-[72px] flex justify-between items-center shadow-md sticky top-0 z-[100] ${settings.highContrast ? 'bg-black border-b-2 border-yellow-400' : 'bg-christmas-red text-white'}`}>
         <div 
-          onClick={() => { setView({type: 'HOME'}); setActiveCategory(null); window.scrollTo(0,0); }} 
+          onClick={() => { setView({type: 'HOME'}); setActiveCategory(null); window.scrollTo({top: 0, behavior: 'smooth'}); }} 
           className="flex items-center gap-3 cursor-pointer group"
           role="button"
+          aria-label="Ir al inicio"
         >
           <div className="p-2 rounded-lg group-hover:bg-white/10"><ChefHat size={28}/></div>
           <span className="font-serif font-bold text-2xl tracking-tighter">Navidad</span>
@@ -129,40 +131,43 @@ export default function App() {
         {view.type === 'HOME' && (
           <div className="space-y-8 animate-in fade-in duration-500">
             
-            {/* BARRA DE NAVEGACIÓN Y BUSQUEDA PERSISTENTE (STICKY) */}
-            <div className={`sticky top-[73px] z-[50] space-y-4 pt-4 pb-6 -mx-4 px-4 md:-mx-8 md:px-8 border-b shadow-sm ${bgColor} ${settings.highContrast ? 'border-yellow-400' : 'border-christmas-gold/10'}`}>
-              <div className="relative">
-                <Search className={`absolute left-4 top-1/2 -translate-y-1/2 ${settings.highContrast ? 'text-yellow-400' : 'text-christmas-gold'}`} size={20} />
-                <input 
-                  type="text"
-                  placeholder="Ej: Cordero, Gambas, Tiramisú..."
-                  className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 focus:ring-4 outline-none transition-all ${cardBg}`}
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  aria-label="Buscar recetas"
-                />
-              </div>
+            {/* 2. CONTENEDOR DE NAVEGACIÓN STICKY (BAJO EL HEADER) */}
+            <div className={`sticky top-[72px] z-[90] -mx-4 px-4 md:-mx-8 md:px-8 py-4 border-b shadow-lg transition-colors ${bgColor} ${settings.highContrast ? 'border-yellow-400' : 'border-christmas-gold/10'}`}>
+              <div className="max-w-5xl mx-auto space-y-4">
+                {/* BUSCADOR */}
+                <div className="relative">
+                  <Search className={`absolute left-4 top-1/2 -translate-y-1/2 ${settings.highContrast ? 'text-yellow-400' : 'text-christmas-gold'}`} size={20} />
+                  <input 
+                    type="text"
+                    placeholder="Busca por nombre..."
+                    className={`w-full pl-12 pr-4 py-4 rounded-2xl border-2 focus:ring-4 outline-none transition-all ${cardBg}`}
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                </div>
 
-              {/* PESTAÑAS DE CATEGORÍA - SIEMPRE ARRIBA */}
-              <nav className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label="Categorías">
-                <button
-                  onClick={() => { setActiveCategory(null); window.scrollTo(0,0); }}
-                  className={`px-5 py-3 rounded-xl font-bold whitespace-nowrap border-2 transition-all ${!activeCategory ? (settings.highContrast ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-christmas-red text-white border-christmas-red shadow-lg') : (settings.highContrast ? 'border-yellow-400 text-yellow-400' : 'border-christmas-gold/20 text-christmas-gold bg-white')}`}
-                >
-                  Todas
-                </button>
-                {Object.values(Category).map((cat) => (
+                {/* PESTAÑAS - ESTAS NO SE MUEVEN */}
+                <nav className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide" aria-label="Secciones del menú">
                   <button
-                    key={cat}
-                    onClick={() => { setActiveCategory(cat); window.scrollTo(0,0); }}
-                    className={`px-5 py-3 rounded-xl font-bold whitespace-nowrap border-2 transition-all ${activeCategory === cat ? (settings.highContrast ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-christmas-red text-white border-christmas-red shadow-lg') : (settings.highContrast ? 'border-yellow-400 text-yellow-400' : 'border-christmas-gold/20 text-christmas-gold bg-white')}`}
+                    onClick={() => { setActiveCategory(null); window.scrollTo({top: 0, behavior: 'smooth'}); }}
+                    className={`px-5 py-3 rounded-xl font-bold whitespace-nowrap border-2 transition-all ${!activeCategory ? (settings.highContrast ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-christmas-red text-white border-christmas-red') : (settings.highContrast ? 'border-yellow-400 text-yellow-400' : 'border-christmas-gold/20 text-christmas-gold bg-white')}`}
                   >
-                    {cat}
+                    Todas
                   </button>
-                ))}
-              </nav>
+                  {Object.values(Category).map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => { setActiveCategory(cat); window.scrollTo({top: 0, behavior: 'smooth'}); }}
+                      className={`px-5 py-3 rounded-xl font-bold whitespace-nowrap border-2 transition-all ${activeCategory === cat ? (settings.highContrast ? 'bg-yellow-400 text-black border-yellow-400' : 'bg-christmas-red text-white border-christmas-red') : (settings.highContrast ? 'border-yellow-400 text-yellow-400' : 'border-christmas-gold/20 text-christmas-gold bg-white')}`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </nav>
+              </div>
             </div>
             
+            {/* 3. GRID DE RECETAS (SCROLL) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 pt-4">
               {filteredRecipes.map(recipe => (
                 <article key={recipe.id} className={`group rounded-[2rem] overflow-hidden border transition-all hover:-translate-y-1 hover:shadow-xl flex flex-col ${cardBg}`}>
@@ -238,7 +243,7 @@ export default function App() {
                       }} 
                       className={`w-full py-6 text-2xl font-bold rounded-2xl shadow-xl flex items-center justify-center gap-3 active:scale-95 transition-all ${btnSecondary}`}
                     >
-                      <Play fill="currentColor" size={24}/> Empezar a Cocinar
+                      <Play fill="currentColor" size={24}/> Modo Cocina
                     </button>
                     <button 
                       onClick={() => toggleMenuRecipe(activeRecipe.id)}
@@ -401,9 +406,10 @@ export default function App() {
         )}
       </main>
 
+      {/* NAVEGACIÓN INFERIOR (MÓVIL) */}
       <footer className={`md:hidden fixed bottom-0 left-0 right-0 p-4 border-t shadow-2xl z-50 transition-all ${settings.highContrast ? 'bg-black border-yellow-400' : 'bg-white border-christmas-gold/10'}`}>
          <div className="flex justify-around items-center">
-            <button onClick={() => { setView({type: 'HOME'}); window.scrollTo(0,0); }} className={`flex flex-col items-center gap-1 ${view.type === 'HOME' ? accentColor : 'opacity-40'}`}>
+            <button onClick={() => { setView({type: 'HOME'}); window.scrollTo({top: 0, behavior: 'smooth'}); }} className={`flex flex-col items-center gap-1 ${view.type === 'HOME' ? accentColor : 'opacity-40'}`}>
                <Eye size={20} /><span className="text-[10px] font-bold">Explorar</span>
             </button>
             <button onClick={() => setView({type: 'CART'})} className={`flex flex-col items-center gap-1 ${view.type === 'CART' ? accentColor : 'opacity-40'}`}>
