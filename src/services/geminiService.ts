@@ -1,71 +1,50 @@
 
-import { GoogleGenAI } from "@google/genai";
 import { Recipe } from '../types';
 
-let genAI: GoogleGenAI | null = null;
-
-const getAI = () => {
-  if (!genAI && process.env.API_KEY) {
-    genAI = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  }
-  return genAI;
-};
+/**
+ * Este servicio ya no utiliza IA en la nube (Google Gemini).
+ * Ahora funciona de forma 100% local analizando los datos de la receta.
+ * Ventajas: Coste $0, Privacidad Total, Funciona sin Internet, Latencia Cero.
+ */
 
 export const generateCookingAssistance = async (
   recipe: Recipe,
   currentStepIndex: number,
   userQuery: string
 ): Promise<string> => {
-  const ai = getAI();
-  if (!ai) return "Lo siento, la clave de API no está configurada.";
-
+  const query = userQuery.toLowerCase();
   const currentStep = recipe.steps[currentStepIndex];
   
-  const prompt = `
-    Eres un asistente de cocina para la app "Navidad en la Mesa".
-    Tu respuesta será LEÍDA EN VOZ ALTA por un sintetizador (TTS).
-    
-    REGLAS ESTRICTAS DE RESPUESTA:
-    1. NO uses Markdown (nada de asteriscos **, guiones -, ni almohadillas #).
-    2. Usa frases cortas y directas.
-    3. Máximo 25 palabras.
-    4. Sé amable pero conciso.
-    5. NO hagas listas, usa oraciones fluidas.
-    
-    Contexto:
-    - Receta: ${recipe.title}
-    - Paso actual (${currentStepIndex + 1}): "${currentStep?.description || 'Finalizado'}"
-    - Ingredientes: ${recipe.ingredients.map(i => `${i.amount} ${i.unit} ${i.name}`).join(', ')}
-    
-    Pregunta del usuario: "${userQuery}"
-  `;
-
-  try {
-    // Timeout de 8 segundos para evitar bloqueos si la red falla
-    const timeoutPromise = new Promise<never>((_, reject) => 
-      setTimeout(() => reject(new Error("Timeout")), 8000)
-    );
-
-    const apiCall = ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: prompt,
-    });
-
-    // Carrera entre la API y el reloj
-    const response = await Promise.race([apiCall, timeoutPromise]);
-
-    // Limpiamos cualquier rastro de markdown que pueda quedar
-    return response.text?.replace(/[*#_`]/g, '').trim() || "No te he entendido bien.";
-  } catch (error: any) {
-    console.error("Error calling Gemini:", error);
-    
-    if (error.message === "Timeout") {
-        return "La conexión va lenta. Intenta preguntar de nuevo.";
-    }
-    if (error.message?.includes("Model isn't available") || error.message?.includes("503")) {
-        return "El cerebro de la cocina está saturado. Prueba en un momento.";
-    }
-    
-    return "Tengo problemas de conexión. Revisa tu internet.";
+  // 1. Lógica para ingredientes
+  if (query.includes('ingrediente') || query.includes('necesito') || query.includes('lleva') || query.includes('que hay que poner')) {
+    const list = recipe.ingredients.map(i => i.name).join(', ');
+    return `Para esta receta necesitas: ${list}. ¿Quieres que te repita alguno?`;
   }
+
+  // 2. Lógica para tiempos y temporizador
+  if (query.includes('tiempo') || query.includes('minutos') || query.includes('cuanto falta') || query.includes('duracion')) {
+    if (currentStep?.timerMinutes) {
+      return `Este paso requiere ${currentStep.timerMinutes} minutos. El tiempo total de cocción es de ${recipe.cookTimeMinutes} minutos.`;
+    }
+    return `Para toda la receta calculamos unos ${recipe.cookTimeMinutes} minutos de cocción.`;
+  }
+
+  // 3. Lógica para explicación de pasos
+  if (query.includes('explicame') || query.includes('entiendo') || query.includes('como se hace') || query.includes('que hago')) {
+    return `Estamos en el paso ${currentStepIndex + 1}. Lo que tienes que hacer es: ${currentStep.description}. Es sencillo, ¡tú puedes!`;
+  }
+
+  // 4. Lógica para cantidades específicas
+  const ingredientFound = recipe.ingredients.find(i => query.includes(i.name.toLowerCase().split(' ')[0]));
+  if (ingredientFound) {
+    return `De ${ingredientFound.name} necesitas exactamente ${ingredientFound.amount} ${ingredientFound.unit}.`;
+  }
+
+  // 5. Lógica para ayuda general / errores
+  if (query.includes('ayuda') || query.includes('hola') || query.includes('que puedes hacer')) {
+    return `Puedo decirte los ingredientes, explicarte el paso actual o decirte cuánto tiempo falta. ¿Qué necesitas?`;
+  }
+
+  // Respuesta por defecto (Simula una respuesta inteligente pero local)
+  return `Para ${recipe.title}, ahora estamos en el paso de ${currentStep.description.toLowerCase()}. ¿Te ayudo con los ingredientes o seguimos?`;
 };
