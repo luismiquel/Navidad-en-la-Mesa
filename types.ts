@@ -15,7 +15,7 @@ export enum Difficulty {
 export interface Ingredient {
   name: string;
   amount: number;
-  unit: string; // "g", "ml", "unidades", "cucharadas", "pizca"
+  unit: string;
   category?: string;
 }
 
@@ -34,15 +34,15 @@ export interface Recipe {
   prepTimeMinutes: number;
   cookTimeMinutes: number;
   difficulty: Difficulty;
-  servingsBase: number; // Siempre 4 en esta especificación
+  servingsBase: number;
   ingredients: Ingredient[];
   steps: Step[];
-  tags: string[]; // "vegano", "sin gluten", "navidad", "tradicional"
+  tags: string[];
 }
 
 export interface AppSettings {
   highContrast: boolean;
-  fontSizeMultiplier: number; // 1 (Normal), 1.25 (Grande), 1.5 (Muy grande)
+  fontSizeMultiplier: number;
   voiceEnabled: boolean;
 }
 
@@ -52,8 +52,13 @@ export type ViewState =
   | { type: 'RECIPE'; recipeId: string }
   | { type: 'COOKING'; recipeId: string }
   | { type: 'CART' }
-  | { type: 'FAVORITES' }
   | { type: 'SETTINGS' };
 
-// Fixed: Added missing AppStatus type export for voice assistance state
 export type AppStatus = 'idle' | 'listening' | 'speaking' | 'processing';
+
+export interface CookingProgress {
+  recipeId: string;
+  currentStep: number;
+  preppedIngredients: string[];
+  startTime: number;
+}

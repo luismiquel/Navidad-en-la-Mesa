@@ -3,8 +3,8 @@ import { GoogleGenAI } from "@google/genai";
 import { Recipe } from '../types';
 
 /**
- * MOTOR DE ASISTENCIA CULINARIA GEMINI
- * Este servicio utiliza la API de Gemini para proporcionar ayuda experta en tiempo real.
+ * SERVICIO EXPERTO CULINARIO GEMINI
+ * Proporciona respuestas contextuales basadas en la receta activa y el paso actual.
  */
 export const generateCookingAssistance = async (
   recipe: Recipe,
@@ -13,27 +13,31 @@ export const generateCookingAssistance = async (
   servings: number = 4
 ): Promise<string> => {
   try {
-    // Inicialización según las guías: nueva instancia por llamada para usar la clave más actualizada
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
-    const step = recipe.steps[currentStepIndex];
+    // Inicialización con la API Key del entorno
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || "" });
+    const currentStep = recipe.steps[currentStepIndex];
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: userQuery,
+      contents: [{ parts: [{ text: userQuery }] }],
       config: {
-        systemInstruction: `Eres un chef experto y asistente de cocina para Navidad. Estás ayudando con la receta "${recipe.title}". 
-        El usuario está actualmente en el paso ${currentStepIndex + 1}: "${step.description}".
-        Están cocinando para ${servings} personas (la receta base es para ${recipe.servingsBase}).
-        Ayuda al usuario con dudas sobre ingredientes, sustitutos y técnica culinaria. 
-        Si preguntan por cantidades, escala los ingredientes basándote en que la receta es para ${recipe.servingsBase} y ellos son ${servings}.
-        Responde en español de forma concisa, útil y con un tono cálido y festivo.`,
+        systemInstruction: `Eres un Chef Estrella Michelin especializado en cenas de Navidad. 
+        Estás guiando a un usuario en la receta: "${recipe.title}".
+        Paso actual (${currentStepIndex + 1}/${recipe.steps.length}): "${currentStep?.description}".
+        Comensales configurados: ${servings} (La receta base es para ${recipe.servingsBase}).
+
+        REGLAS:
+        1. Si el usuario pregunta por ingredientes o cantidades, calcula la proporción exacta (${servings}/${recipe.servingsBase}).
+        2. Si pide sustitutos por alergia o falta de stock, ofrece alternativas gourmet.
+        3. Si pregunta por técnicas (ej. "punto de nieve", "sofreír"), explica brevemente cómo hacerlo.
+        4. Responde siempre en español, con calidez festiva y máximo 2-3 frases.`,
       },
     });
 
-    // Acceso a .text como propiedad según las guías de @google/genai
-    return response.text || "Lo siento, no he podido procesar tu duda. ¡Prueba a preguntarme de otra forma!";
+    // Acceso a la propiedad .text según el SDK
+    return response.text || "No he podido procesar tu duda. ¿Puedes preguntarme de otra forma?";
   } catch (error) {
-    console.error("Gemini Assistance Error:", error);
-    return "Lo siento, el asistente de cocina está teniendo problemas de conexión. Por favor, intenta de nuevo en unos momentos.";
+    console.error("Gemini Error:", error);
+    return "Lo siento, mi conexión con la cocina central se ha interrumpido. ¡Sigue adelante, vas muy bien!";
   }
 };
