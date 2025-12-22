@@ -2,9 +2,20 @@
 import { Recipe } from '../types';
 
 /**
- * MOTOR DE LÓGICA LOCAL PRO (V2)
- * Sin dependencias externas. 100% Offline.
+ * MOTOR DE CONOCIMIENTO LOCAL CULINARIO
+ * Sin IA, sin APIs, solo lógica determinista de alto rendimiento.
  */
+
+const SUBSTITUTIONS: Record<string, string> = {
+  'mantequilla': 'aceite de oliva (80% de la cantidad), margarina o puré de manzana para repostería.',
+  'huevo': 'una cucharada de semillas de lino con agua, medio plátano machacado o puré de manzana.',
+  'leche': 'bebida de soja, avena o simplemente agua con un poco de mantequilla.',
+  'vino': 'caldo de pollo o verduras con un chorrito de vinagre o zumo de uva.',
+  'harina': 'harina de avena triturada, harina de arroz o maicena (para espesar).',
+  'nata': 'leche evaporada, yogur griego natural o crema de coco.',
+  'azúcar': 'miel, sirope de arce, estevia o dátiles triturados.',
+  'cilantro': 'perejil fresco con un toque de lima.',
+};
 
 export const generateCookingAssistance = async (
   recipe: Recipe,
@@ -16,37 +27,47 @@ export const generateCookingAssistance = async (
   const currentStep = recipe.steps[currentStepIndex];
   const ratio = servings / recipe.servingsBase;
   
-  // 1. Lógica de Cantidades Escaladas
-  if (/\b(cuanto|cantidad|proporcion|gramos|mucho)\b/i.test(query)) {
-    const ingredient = recipe.ingredients.find(i => query.includes(i.name.toLowerCase().split(' ')[0]));
-    if (ingredient) {
-      const scaledAmount = (ingredient.amount * ratio).toFixed(1).replace('.0', '');
-      return `Para ${servings} personas necesitas ${scaledAmount} ${ingredient.unit} de ${ingredient.name}.`;
+  // 1. Detección de Sustituciones
+  for (const [key, value] of Object.entries(SUBSTITUTIONS)) {
+    if (query.includes(key) && (query.includes('no tengo') || query.includes('sustituir') || query.includes('cambiar'))) {
+      return `Si no tienes ${key}, puedes usar ${value}`;
     }
   }
 
-  // 2. Lógica de Ingredientes Totales
-  if (/\b(ingredientes|que lleva|lista|necesito)\b/i.test(query)) {
-    const list = recipe.ingredients.map(i => i.name).slice(0, 5).join(', ');
-    return `Lleva ${list} y otros. ¿Quieres que te diga las cantidades para ${servings} personas?`;
+  // 2. Cálculos de Cantidades Escaladas e Inteligentes
+  if (/\b(cuanto|cantidad|proporcion|gramos|mucho)\b/i.test(query)) {
+    const ingredient = recipe.ingredients.find(i => query.includes(i.name.toLowerCase().split(' ')[0]));
+    if (ingredient) {
+      const amount = ingredient.amount * ratio;
+      let displayAmount = amount.toFixed(1).replace('.0', '');
+      let unit = ingredient.unit;
+
+      // Conversión inteligente de unidades
+      if (unit === 'g' && amount >= 1000) { displayAmount = (amount / 1000).toFixed(2); unit = 'kg'; }
+      if (unit === 'ml' && amount >= 1000) { displayAmount = (amount / 1000).toFixed(2); unit = 'litros'; }
+
+      return `Para ${servings} personas necesitas ${displayAmount} ${unit} de ${ingredient.name}.`;
+    }
   }
 
-  // 3. Lógica de Tiempo y Finalización
-  if (/\b(tiempo|cuanto falta|terminar|minutos|hora)\b/i.test(query)) {
-    const totalRem = recipe.cookTimeMinutes; 
-    return `Este paso dura unos ${currentStep.timerMinutes || 'unos'} minutos. La receta completa son ${recipe.cookTimeMinutes} minutos en total.`;
+  // 3. Resumen de Ingredientes para el Paso
+  if (/\b(necesito|que uso|ingredientes)\b/i.test(query)) {
+    return `Para este paso estamos usando ${recipe.ingredients.slice(0, 3).map(i => i.name).join(', ')}. ¿Quieres saber las cantidades exactas?`;
   }
 
-  // 4. Lógica de Pasos
-  if (/\b(repite|paso|que hago|entiendo|ayuda)\b/i.test(query)) {
-    return `Estamos en el paso ${currentStepIndex + 1}. Tienes que: ${currentStep.description}. ¡Vas muy bien!`;
+  // 4. Guía de Tiempos
+  if (/\b(tiempo|falta|minuto|reloj|cuando)\b/i.test(query)) {
+    const stepTime = currentStep?.timerMinutes;
+    return stepTime 
+      ? `Este paso requiere unos ${stepTime} minutos. ¡No pierdas de vista el reloj!`
+      : `Este paso no tiene un tiempo fijo, guíate por la textura o el color. La receta total son ${recipe.cookTimeMinutes} minutos.`;
   }
 
-  // 5. Lógica de Sugerencias (Local)
-  if (/\b(sugerencia|recomend|otro plato|consejo)\b/i.test(query)) {
-    return `Mi consejo: Prepara todos los ingredientes antes de encender el fuego. ¡La organización es clave en Navidad!`;
+  // 5. Soporte de Dificultad
+  if (/\b(dificil|complicado|ayuda|consejo)\b/i.test(query)) {
+    return `Esta receta es de dificultad ${recipe.difficulty.toLowerCase()}. Mi consejo: lee el siguiente paso antes de terminar este para ir por delante.`;
   }
 
-  // Fallback
-  return `Estoy aquí para ayudarte con el paso ${currentStepIndex + 1}. ¿Quieres saber las cantidades o que te repita la instrucción?`;
+  // Fallback Contextual
+  return `Estamos en el paso ${currentStepIndex + 1} de ${recipe.steps.length}. Dice: ${currentStep?.description.substring(0, 50)}... ¿Necesitas saber algún ingrediente o pasamos al siguiente?`;
 };
